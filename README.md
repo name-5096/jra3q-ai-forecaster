@@ -2,7 +2,7 @@
 
 [English](#english) | [日本語](#日本語)
 
-**Live Demo / 稼働中のウェブアプリ**: [https://streamlit.app](https://streamlit.app)
+**Live Demo / 稼働中のウェブアプリ**: [[https://streamlit.app](https://jra3q-ai-forecaster-d3bjvmaprm4sish9c844yt.streamlit.app/)]
 
 ---
 
