@@ -1,5 +1,8 @@
 # jra3q-ai-forecaster
 
+An open-source data integration tool for JRA-3Q netCDF4 atmospheric vertical profiling and bias-free LLM objective weather forecasting.
+
+
 [English](#english) | [日本語](#日本語)
 
 **Live Demo / 稼働中のウェブアプリ**: [[https://streamlit.app](https://jra3q-ai-forecaster-d3bjvmaprm4sish9c844yt.streamlit.app/)]
