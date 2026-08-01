@@ -2,3 +2,4 @@ streamlit
 netCDF4
 pandas
 numpy
+tabulate
