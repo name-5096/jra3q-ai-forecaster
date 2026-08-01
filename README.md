@@ -2,6 +2,8 @@
 
 [English](#english) | [日本語](#日本語)
 
+**Live Demo / 稼働中のウェブアプリ**: [https://streamlit.app](https://streamlit.app)
+
 ---
 
 ## English
