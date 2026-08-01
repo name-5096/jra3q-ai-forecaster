@@ -76,3 +76,11 @@ python converter.py
 
 ### ライセンス
 本プロジェクトは Apache License 2.0 のもとで公開されています。コードの改変や再利用は自由ですが、利用・配布の際は著作権表示および出典（クレジット）の明記が法的に義務付けられます。
+
+
+
+
+
+### Contributing / 貢献について
+Contributions, bug reports, and Pull Requests are highly welcome! If you find ways to optimize the netCDF4 parsing speed or improve the LLM prompt matrix structure, feel free to open an issue or submit a PR.
+（バグ報告やプルリクエストは大歓迎です！ネットCDFの処理高速化や、LLM向けマトリックスの構造改善など、お気軽にPRをお寄せください。）
