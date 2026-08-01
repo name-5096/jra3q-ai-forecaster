@@ -1,80 +1,124 @@
+import streamlit as st
+import netCDF4 as nc
 import numpy as np
 import pandas as pd
-import netCDF4 as nc
+import os
 
 # ==========================================
-# 1. 設定（ファイル名を合わせてください）
+# Web App UI Configuration (Streamlit)
 # ==========================================
-INPUT_NC_FILE = "data.nc" # 読み込むnetCDF4ファイルの名前
-OUTPUT_CSV_FILE = (
-    "gemini_data.csv"  # Geminiに読み込ませる用に出力するファイル名
-)
+st.set_page_config(page_title="JRA-3Q AI Forecaster Payload Generator", layout="wide")
+st.title("JRA-3Q AI Forecaster: 3D Vertical Profile Extractor")
+st.write("Extract bias-free atmospheric matrix data for objective LLM inference from JRA-3Q netCDF4 files.")
 
+# --- File Layout Setup in Sidebar ---
+st.sidebar.header("1. Dataset Configuration")
+st.sidebar.write("Ensure the following 4 netCDF4 files are placed in the application directory:")
 
-# ==========================================
-# 2. netCDF4ファイルを開いて中身を確認する
-# ==========================================
-print("netCDF4ファイルを読み込んでいます...")
-try:
-    dataset = nc.Dataset(INPUT_NC_FILE, mode="r")
-except Exception as e:
-    print(f"ファイルが開けません。名前が正しいか確認してください: {e}")
-    exit()
+FILES = {
+    "Temperature": "tmp.nc",
+    "Specific Humidity": "spfh.nc",
+    "Zonal Wind": "ugrd.nc",
+    "Meridional Wind": "vgrd.nc"
+}
+OUTPUT_CSV_FILE = "gemini_data.csv"
 
-# ファイルの中にどんなデータ（変数）が入っているか画面に表示します
-print("含まれている気象データ一覧:", list(dataset.variables.keys()))
+# Real-time check for netCDF4 files existence
+missing_files = [path for name, path in FILES.items() if not os.path.exists(path)]
 
+if missing_files:
+    st.sidebar.error(f"Missing files: {', '.join(missing_files)}")
+    st.error("Please place the required JRA-3Q files (tmp.nc, spfh.nc, ugrd.nc, vgrd.nc) in the same directory.")
+    st.stop()
+else:
+    st.sidebar.success("All 4 target netCDF4 datasets detected successfully.")
 
-# ==========================================
-# 3. データをGeminiが読める表形式（CSV）に変換
-# ==========================================
-print("Gemini用のデータに変換中...")
+# --- Coordinate Input ---
+st.sidebar.header("2. Target Coordinates")
+# Default coordinates preset to Kumamoto area (32.5°N, 130.0°E) for the case study
+target_lat = st.sidebar.number_input("Target Latitude (degrees_north)", min_value=-90.0, max_value=90.0, value=32.5, step=1.25)
+target_lon = st.sidebar.number_input("Target Longitude (degrees_east)", min_value=0.0, max_value=360.0, value=130.0, step=1.25)
 
-# 一般的なnetCDF4に含まれる「時間」「緯度」「経度」を取得
-# （※ファイルによって英語名が 'time', 'lat', 'lon' など異なる場合があります）
-time_var = next((v for v in dataset.variables if "time" in v.lower()), None)
-lat_var = next((v for v in dataset.variables if "lat" in v.lower()), None)
-lon_var = next((v for v in dataset.variables if "lon" in v.lower()), None)
-
-# 予測に使いたい主役の気象データ（例：気温や気圧など）を自動で1つ選びます
-# 緯度・経度・時間以外のデータを探します
-target_var = None
-for v in dataset.variables:
-    if v not in [time_var, lat_var, lon_var] and len(
-        dataset.variables[v].shape
-    ) >= 3:
-        target_var = v
-        break
-
-if not target_var:
-    print("変換できる気象データ（3次元以上）が見つかりませんでした。")
-    dataset.close()
-    exit()
-
-print(f"「{target_var}」のデータを抽出します。")
-
-# データを扱いやすい数値の塊（numpy配列）として読み込みます
-data_array = dataset.variables[target_var][:]
-
-# 【初心者向け重要設定】
-# netCDF4はデータ量が膨大（数百万〜数千万マス）で、そのままGeminiに渡すと
-# 容量オーバーでフリーズしたり、Geminiが処理を拒否したりします。
-# そのため、今回は「最初の位置・最初の時間帯の100件」だけをサンプルとして抜き出します。
-flat_data = data_array.flatten()[:100]
-
-# 表（データフレーム）を作成
-df = pd.DataFrame(
-    {
-        "データ番号": range(1, len(flat_data) + 1),
-        f"気象データ_{target_var}": flat_data,
-    }
-)
 
 # ==========================================
-# 4. CSVファイルとして保存
+# 3. Data Processing Core (Vertical Extractor)
 # ==========================================
-# Geminiが読み込みやすいよう、シンプルなCSVファイルとして書き出します
-df.to_csv(OUTPUT_CSV_FILE, index=False, encoding="utf-8")
-dataset.close()
+@st.cache_data
+def extract_vertical_profile(lat, lon):
+    try:
+        # Open files securely using the exact original dictionary structure
+        datasets = {key: nc.Dataset(path, mode="r") for key, path in FILES.items()}
 
-print(f"完了しました！「{OUTPUT_CSV_FILE}」というファイルが作られました。")
+        # Extract dimension coordinate arrays
+        lats = datasets["Temperature"].variables["lat"][:]
+        lons = datasets["Temperature"].variables["lon"][:]
+        levels = datasets["Temperature"].variables["pressure_level"][:]
+
+        # Nearest neighbor indexing logic (0-360 deg support)
+        lat_idx = np.abs(lats - lat).argmin()
+        lon_idx = np.abs(lons - lon).argmin()
+
+        # Exact JRA-3Q specific isobaric variable keys from the original script
+        t_var = "tmp-pres-an-ll125"
+        q_var = "spfh-pres-an-ll125"
+        u_var = "ugrd-pres-an-ll125"
+        v_var = "vgrd-pres-an-ll125"
+
+        latest_time_idx = -1
+        records = []
+
+        # Slice 4D array into a clean 1D vertical profile (1000hPa down to 300hPa)
+        for k, level in enumerate(levels):
+            if 300 <= level <= 1000:
+                t_val = datasets["Temperature"].variables[t_var][latest_time_idx, k, lat_idx, lon_idx]
+                q_val = datasets["Specific Humidity"].variables[q_var][latest_time_idx, k, lat_idx, lon_idx]
+                u_val = datasets["Zonal Wind"].variables[u_var][latest_time_idx, k, lat_idx, lon_idx]
+                v_val = datasets["Meridional Wind"].variables[v_var][latest_time_idx, k, lat_idx, lon_idx]
+                
+                records.append({
+                    "Pressure_Level(hPa)": float(level),
+                    "Temperature(K)": round(float(t_val), 2),
+                    "U-Wind(m/s)": round(float(u_val), 2),
+                    "V-Wind(m/s)": round(float(v_val), 2),
+                    "Specific_Humidity(g/kg)": round(float(q_val) * 1000, 3) # Converted to g/kg unit
+                })
+
+        # Close all dataset hooks safely
+        for ds in datasets.values():
+            ds.close()
+
+        # Build DataFrame and sort descending (from surface 1000hPa going up to 300hPa)
+        df = pd.DataFrame(records)
+        df_output = df.sort_values(by="Pressure_Level(hPa)", ascending=False)
+        
+        return df_output, lats[lat_idx], lons[lon_idx]
+
+    except Exception as e:
+        st.error(f"Processing Matrix Error: {str(e)}")
+        return None, None, None
+
+
+# ==========================================
+# 4. Render App View & Output Elements
+# ==========================================
+# Execute extraction matrix pipeline
+df_profile, actual_lat, actual_lon = extract_vertical_profile(target_lat, target_lon)
+
+if df_profile is not None:
+    st.subheader("Extracted Bias-Free Vertical Grid Matrix")
+    st.write(f"Nearest resolved grid point coordinates: Lat {actual_lat} N, Lon {actual_lon} E")
+    
+    # Interactive UI Data Table
+    st.dataframe(df_profile, use_container_width=True)
+
+    # Automatically save a background copy as CSV (inheriting original script's logic)
+    df_profile.to_csv(OUTPUT_CSV_FILE, index=False, encoding="utf-8")
+
+    # --- LLM Plain-Text Clipboard Section ---
+    st.subheader("Copy Payload for Bias-Free LLM Input")
+    st.write("This matrix represents the vertical atmospheric profile (1000hPa to 300hPa) exactly above the observed point. Copy and paste it straight into your LLM prompt.")
+    
+    # Generate clean markdown layout for copy-pasting
+    markdown_payload = df_profile.to_markdown(index=False)
+    st.code(markdown_payload, language="markdown")
+    st.success(f"Background update complete: {OUTPUT_CSV_FILE} successfully dumped to directory root.")
