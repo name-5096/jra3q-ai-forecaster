@@ -2,7 +2,7 @@
 
 Click the link below to access the running web application on Streamlit Cloud:
 
-👉 **[Launch JRA-3Q AI Forecaster App](https://jra3q-ai-forecaster-d3bjvmaprm4sish9c844yt.streamlit.app/)**
+→ **[Launch JRA-3Q AI Forecaster App](https://jra3q-ai-forecaster-d3bjvmaprm4sish9c844yt.streamlit.app/)**
 
 ---
 
@@ -10,4 +10,4 @@ Click the link below to access the running web application on Streamlit Cloud:
 
 Streamlit Cloud上で本番稼働しているWebアプリケーションへは、以下のリンクから直接アクセスできます：
 
-👉 **[JRA-3Q AI Forecaster アプリを起動する](https://jra3q-ai-forecaster-d3bjvmaprm4sish9c844yt.streamlit.app/)**
+→ **[JRA-3Q AI Forecaster アプリを起動する](https://jra3q-ai-forecaster-d3bjvmaprm4sish9c844yt.streamlit.app/)**
