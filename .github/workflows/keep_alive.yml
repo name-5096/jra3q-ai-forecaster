@@ -1,0 +1,36 @@
+name: Keep Streamlit App Awake
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' 
+  workflow_dispatch:
+
+jobs:
+  wake-up:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-cache: 'pip'
+
+    - name: Install Playwright
+      run: |
+        pip install playwright
+        playwright install chromium
+
+    - name: Visit Streamlit App
+      run: |
+        python -c "
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto('https://jra3q-ai-forecaster-d3bjvmaprm4sish9c844yt.streamlit.app/')
+            page.wait_for_timeout(5000)
+            print('App pinged successfully!')
+            browser.close()
+        "
