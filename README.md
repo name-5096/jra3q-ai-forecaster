@@ -82,6 +82,11 @@ python converter.py
 ### ライセンス
 本プロジェクトは Apache License 2.0 のもとで公開されています。コードの改変や再利用は自由ですが、利用・配布の際は著作権表示および出典（クレジット）の明記が法的に義務付けられます。
 
+### 📚 Acknowledgments & References
+
+- **OpenMythos Project** ([GitHub](https://github.com/)): The local reasoning architecture in `local_ai.py` is inspired by the Recurrent-Depth Transformer (RDT) and latent-space looping concepts of the OpenMythos project (licensed under the **MIT License**).
+- **Japan Meteorological Agency (JMA)**: For the JRA-3Q (Japanese Reanalysis 3Q) meteorological datasets.
+- **National Oceanic and Atmospheric Administration (NOAA) / AMS**: For thermodynamic and kinematic sounding analysis standards (Skew-T, Hodograph, CAPE/CIN/SRH).
 
 
 
