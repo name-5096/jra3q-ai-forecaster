@@ -1,6 +1,9 @@
 """
-local_ai.py - OpenMythos Recurrent-Depth Transformer (RDT) Engine
-Implements latent-space recurrent looping over atmospheric thermodynamic tensors.
+## Acknowledgments & References
+
+- **OpenMythos Project** ([GitHub](https://github.com/)): The local reasoning architecture in `local_ai.py` is inspired by the Recurrent-Depth Transformer (RDT) and latent-space looping concepts of the OpenMythos project (licensed under the **MIT License**).
+- **Japan Meteorological Agency (JMA)**: For the JRA-3Q (Japanese Reanalysis 3Q) meteorological datasets.
+- **National Oceanic and Atmospheric Administration (NOAA) / AMS**: For thermodynamic and kinematic sounding analysis standards (Skew-T, Hodograph, CAPE/CIN/SRH).
 """
 import numpy as np
 import pandas as pd
